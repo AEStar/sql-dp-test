@@ -25,7 +25,7 @@ object wPINQ_test {
 
   def main(args: Array[String]) {
 
-    val conn = DriverManager.getConnection(conn_str, "postgres", "zhanxuchang159")
+    val conn = DriverManager.getConnection(conn_str, "yourownaccount", "yourownpassword")
 
     //original query
     val query = """
