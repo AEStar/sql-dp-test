@@ -1,13 +1,13 @@
 package examples
 
-import java.sql.{Connection, DriverManager, ResultSet}
+import java.sql.{DriverManager, ResultSet}
 import java.util.Date
 
-import com.uber.engsec.dp.rewriting.differential_privacy.{WPINQConfig, WPINQRewriter}
+import com.uber.engsec.dp.rewriting.differential_privacy.{SampleAndAggregateConfig, SampleAndAggregateRewriter}
 import com.uber.engsec.dp.schema.Schema
+import examples.QueryRewritingExample.{EPSILON, database, printQuery}
 
-object wPINQ_test {
-
+object SampleAndAgg_test {
   val conn_str = "jdbc:vertica://127.0.0.1:5433/test"
   classOf[com.vertica.jdbc.Driver]
 
@@ -20,6 +20,8 @@ object wPINQ_test {
   // delta parameter: use 1/n^2, with n = 100000
   val DELTA = 1 / (math.pow(100000,2))
 
+  val LAMBDA = 2.0
+
   // Helper function to print queries with indentation.
   def printQuery(query: String) = println(s"\n  " + query.replaceAll("\\n", s"\n  ") + "\n")
 
@@ -27,22 +29,22 @@ object wPINQ_test {
 
     val conn = DriverManager.getConnection(conn_str, "dbadmin", "zhanxuchang159")
 
-    //original query
+
+
+    // Example query: What is the average cost of orders for product 1?
     val query = """
-                  |SELECT COUNT(*) AS rowcount FROM orders
-                  |JOIN customers ON orders.customer_id = customers.customer_id
-                  |WHERE orders.product_id < 300
-      	 """
+                  |SELECT AVG(order_cost) AS rowcount FROM orders
+                  |WHERE product_id = 1"""
       .stripMargin.stripPrefix("\n")
 
     println("Original query:")
     printQuery(query)
 
     // Test WPINQ Rewritten query
-    val config = new WPINQConfig(EPSILON, database)
-    val wPINQRewrittenQueryDemo = new WPINQRewriter(config).run(query)
-    val wPINQRewrittenQuery = wPINQRewrittenQueryDemo.toSql().replace("RAND","RANDOM")
-    printQuery(wPINQRewrittenQuery)
+    println("\nSample&Aggregate Rewritten query:")
+    val config = new SampleAndAggregateConfig(EPSILON, LAMBDA, database)
+    val rewrittenQuery = new SampleAndAggregateRewriter(config).run(query).toSql().replace("RAND","RANDOM")
+    printQuery(rewrittenQuery)
 
     try {
       // Configure to be Read Only
@@ -55,6 +57,7 @@ object wPINQ_test {
         while(queryResult.next()){
           println(queryResult.getString("rowcount"))
         }
+
       }
       var end_time1 =new Date().getTime
       println(end_time1-start_time1+"\n")
@@ -62,10 +65,7 @@ object wPINQ_test {
       // Execute Rewritten Query
       var start_time2 =new Date().getTime
       (1 to 10).foreach { i =>
-        val wPINQueryResult = statement.executeQuery(wPINQRewrittenQuery)
-        while(wPINQueryResult.next()){
-          println(wPINQueryResult.getString("rowcount"))
-        }
+        val SampleAndAggQueryResult = statement.executeQuery(rewrittenQuery)
       }
       var end_time2 =new Date().getTime
       println(end_time2-start_time2+"\n")

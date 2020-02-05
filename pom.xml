@@ -127,10 +127,11 @@
         </dependency>
 
         <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.2.9</version>
+            <groupId>com.vertica</groupId>
+            <artifactId>vjdbc9</artifactId>
+            <version>9.3.1</version>
         </dependency>
+
 
         <!-- Test -->
         <dependency>
