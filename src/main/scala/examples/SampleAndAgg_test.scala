@@ -33,14 +33,14 @@ object SampleAndAgg_test {
 
     // Example query: What is the average cost of orders for product 1?
     val query = """
-                  |SELECT AVG(order_cost) AS rowcount FROM orders
+                  |SELECT AVG(order_cost) FROM orders
                   |WHERE product_id = 1"""
       .stripMargin.stripPrefix("\n")
 
     println("Original query:")
     printQuery(query)
 
-    // Test WPINQ Rewritten query
+    // Test Sample&Aggregate Rewritten query
     println("\nSample&Aggregate Rewritten query:")
     val config = new SampleAndAggregateConfig(EPSILON, LAMBDA, database)
     val rewrittenQuery = new SampleAndAggregateRewriter(config).run(query).toSql().replace("RAND","RANDOM")
@@ -55,7 +55,7 @@ object SampleAndAgg_test {
       (1 to 10).foreach { i =>
         val queryResult = statement.executeQuery(query)
         while(queryResult.next()){
-          println(queryResult.getString("rowcount"))
+          println(queryResult.getInt(1))
         }
 
       }

@@ -1,13 +1,13 @@
 package examples
 
-import java.sql.{Connection, DriverManager, ResultSet}
+import java.sql.{DriverManager, ResultSet}
 import java.util.Date
 
-import com.uber.engsec.dp.rewriting.differential_privacy.{WPINQConfig, WPINQRewriter}
+import com.uber.engsec.dp.rewriting.differential_privacy.{ElasticSensitivityConfig, ElasticSensitivityRewriter}
 import com.uber.engsec.dp.schema.Schema
+import examples.QueryRewritingExample.{DELTA, EPSILON, database}
 
-object wPINQ_test {
-
+object ElasticSensitivity_test {
   val conn_str = "jdbc:vertica://127.0.0.1:5433/test"
   classOf[com.vertica.jdbc.Driver]
 
@@ -29,20 +29,20 @@ object wPINQ_test {
 
     //original query
     val query = """
-                  |SELECT COUNT(*) FROM orders
+                  |SELECT COUNT(*)  FROM orders
                   |JOIN customers ON orders.customer_id = customers.customer_id
-                  |WHERE orders.product_id = 1
+                  |WHERE orders.product_id < 300
       	 """
       .stripMargin.stripPrefix("\n")
 
     println("Original query:")
     printQuery(query)
 
-    // Test WPINQ Rewritten query
-    val config = new WPINQConfig(EPSILON, database)
-    val wPINQRewrittenQueryDemo = new WPINQRewriter(config).run(query)
-    val wPINQRewrittenQuery = wPINQRewrittenQueryDemo.toSql().replace("RAND","RANDOM")
-    printQuery(wPINQRewrittenQuery)
+    // Test ElasticSensitivity Rewritten query
+    val config = new ElasticSensitivityConfig(EPSILON, DELTA, database)
+    val rewrittenQuery = new ElasticSensitivityRewriter(config).run(query)
+    val ElasticSensitivityRewrittenQuery = rewrittenQuery.toSql().replace("RAND","RANDOM")
+    printQuery(ElasticSensitivityRewrittenQuery)
 
     try {
       // Configure to be Read Only
@@ -62,9 +62,9 @@ object wPINQ_test {
       // Execute Rewritten Query
       var start_time2 =new Date().getTime
       (1 to 10).foreach { i =>
-        val wPINQueryResult = statement.executeQuery(wPINQRewrittenQuery)
-        while(wPINQueryResult.next()){
-          println(wPINQueryResult.getInt(1))
+        val ElasticSensitivityResult = statement.executeQuery(ElasticSensitivityRewrittenQuery)
+        while(ElasticSensitivityResult.next()){
+          println(ElasticSensitivityResult.getInt(1))
         }
       }
       var end_time2 =new Date().getTime
